@@ -1,0 +1,8 @@
+# Runtime dependencies for the recon framework.
+# Pinned with lower bounds; collectors import their libs lazily so the core
+# framework still runs if an optional one is absent.
+
+requests>=2.31.0        # shared HTTP client (VirusTotal, Shodan)
+python-whois>=0.9.0     # WHOIS collector
+dnspython>=2.6.0        # DNS collector
+python-dotenv>=1.0.0    # optional .env loading (framework has a fallback parser)
