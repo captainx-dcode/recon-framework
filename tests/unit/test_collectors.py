@@ -119,10 +119,13 @@ class TestShodan:
         assert result.data["summary"]["ports"] == [22, 80, 443]
         assert result.data["summary"]["services"][0]["product"] == "nginx"
 
-    def test_only_applies_to_ip(self, config, fake_http_factory):
-        http = fake_http_factory({})
-        result = ShodanCollector(config, http).run(_domain())
-        assert result.status == Status.NOT_APPLICABLE
+    def test_now_applies_to_domain_too(self, config):
+        # Shodan was upgraded to support domains (resolved to an IP first);
+        # it should no longer report NOT_APPLICABLE for a domain target.
+        # (Full domain-resolution behaviour is covered in
+        # test_shodan_domain_and_facade.py.)
+        assert ShodanCollector(config).applies_to(_domain()) is True
+        assert ShodanCollector(config).applies_to(_ip()) is True
 
 
 # --- WHOIS (fake the third-party module) -----------------------------------
