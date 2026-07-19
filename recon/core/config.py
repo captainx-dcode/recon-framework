@@ -128,3 +128,27 @@ class Config:
     def available_keys(self) -> list[str]:
         """Names of API keys that are actually configured."""
         return [name for name, value in self.api_keys.items() if value]
+
+    def with_keys(self, extra: dict[str, str]) -> "Config":
+        """Return a *new* Config with ``extra`` API keys merged in.
+
+        Config is frozen (immutable) so it can be shared safely across a run, but
+        interactive mode needs to inject keys the user pasted at the prompt. Rather
+        than mutate shared state, we build a fresh copy — the immutability
+        guarantee is preserved and callers that still hold the old instance are
+        unaffected. Empty values in ``extra`` are ignored so a blank prompt never
+        overwrites an existing key.
+        """
+        if not extra:
+            return self
+        merged = dict(self.api_keys)
+        for name, value in extra.items():
+            if value:
+                merged[name] = value
+        return Config(
+            api_keys=merged,
+            request_timeout=self.request_timeout,
+            rate_limit_delay=self.rate_limit_delay,
+            max_retries=self.max_retries,
+            user_agent=self.user_agent,
+        )
