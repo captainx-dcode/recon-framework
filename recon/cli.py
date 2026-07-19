@@ -27,6 +27,7 @@ from recon.collectors.registry import build_default_registry
 from recon.core.config import Config
 from recon.core.engine import ReconEngine
 from recon.core.exceptions import ReconError
+from recon.interactive import is_interactive, run_wizard
 from recon.output.formatters import available_formats, get_formatter
 from recon.output.storage import ReportStore
 from recon.utils.logging import configure_logging, get_logger
@@ -42,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "examples:\n"
+            "  recon.py                                    (interactive wizard)\n"
             "  recon.py --domain example.com\n"
             "  recon.py --ip 8.8.8.8 --output json --save\n"
             "  recon.py --target example.com --tool whois --tool dns --passive\n"
@@ -84,6 +86,10 @@ def build_parser() -> argparse.ArgumentParser:
     verbosity.add_argument("--quiet", "-q", action="store_true", help="Only warnings and errors.")
 
     parser.add_argument(
+        "--interactive", "-i", action="store_true",
+        help="Force interactive mode (prompt for target, mode, and output).",
+    )
+    parser.add_argument(
         "--list-tools", action="store_true",
         help="List available collectors and exit.",
     )
@@ -115,11 +121,37 @@ def run(argv: list[str] | None = None) -> int:
         return 0
 
     raw_target = _resolve_target(args)
+
+    # --- Interactive mode -------------------------------------------------
+    # The wizard runs when the user explicitly asks for it (--interactive) OR
+    # when they gave no target *and* we're attached to a real terminal. The TTY
+    # check is what keeps CodeGrade, pipes, and scripts on the flag path: with
+    # redirected stdin/stdout, a missing target stays the usual error below.
+    wizard_keys: dict[str, str] = {}
+    if args.interactive or (not raw_target and is_interactive()):
+        try:
+            base_config = Config.load(env_file=args.env_file)
+            choices = run_wizard(base_config)
+        except (KeyboardInterrupt, EOFError):
+            print()  # tidy the terminal after ^C / ^D
+            log.warning("Interactive mode cancelled.")
+            return 130
+        # Translate the wizard's answers into the same variables the flags set,
+        # so the execution path below is identical for both entry styles.
+        raw_target = choices.target
+        args.passive = choices.passive_only
+        args.output = choices.output
+        args.save = choices.save
+        wizard_keys = choices.provided_keys
+
     if not raw_target:
         parser.error("no target given; use --domain, --ip, or --target (or --list-tools).")
 
     try:
         config = Config.load(env_file=args.env_file)
+        # Merge any keys the user pasted at the interactive prompt (no-op for
+        # flag mode, where wizard_keys is empty). Immutable copy — see with_keys.
+        config = config.with_keys(wizard_keys)
         with ReconEngine(config) as engine:
             result = engine.run(
                 raw_target,
