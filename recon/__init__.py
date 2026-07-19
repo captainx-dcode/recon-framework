@@ -4,7 +4,7 @@ Public API surface is intentionally small; most work goes through the CLI or the
 :class:`recon.core.engine.ReconEngine`.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from recon.api import investigate, shodan_lookup, whois_lookup
 from recon.core.config import Config

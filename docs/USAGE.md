@@ -6,6 +6,45 @@
 python recon.py [target] [options]
 ```
 
+## Interactive mode (no flags needed)
+
+If you run `recon.py` with **no target**, and you're at a real terminal, it drops
+into a guided wizard that asks for the target, the mode, and the output format —
+so you don't have to remember any flags:
+
+```bash
+python recon.py
+```
+
+```
+  Recon Framework — interactive mode
+  (tip: pass --domain / --ip to skip these questions)
+
+  Target domain or IP: tryhackme.com
+  Which mode?
+    [1] Passive only  — WHOIS + DNS, no API keys needed (default)
+    [2] Full          — also Shodan / VirusTotal (needs keys)
+  Choose: 1
+  Output format?
+    [1] csv
+    [2] json
+    [3] table (default)
+  Choose: 3
+  Save the report to a file? [y/N]: n
+```
+
+You can also force the wizard explicitly with `--interactive` (`-i`), even when
+piping would otherwise suppress it.
+
+In **full** mode, if a collector's API key isn't configured, the wizard offers to
+let you paste one or skip that source — skipping just means it reports `skipped`
+and the run continues with whatever is available.
+
+**Important:** the wizard only appears for a human at a terminal. When a target
+*is* supplied, or when input is piped/redirected (scripts, CI, CodeGrade), the
+flag-driven behaviour below applies unchanged and nothing ever blocks on a
+prompt.
+
 ### Target (choose one)
 
 | Flag | Example | Notes |
@@ -26,6 +65,7 @@ python recon.py [target] [options]
 | `--env-file PATH` | `.env` | Location of the env file with API keys. |
 | `--verbose`, `-v` | off | DEBUG-level logging (to stderr). |
 | `--quiet`, `-q` | off | Only warnings/errors. |
+| `--interactive`, `-i` | off | Force the interactive wizard (prompt for target/mode/output). |
 | `--list-tools` | — | Print available collectors and exit. |
 
 ## Examples
